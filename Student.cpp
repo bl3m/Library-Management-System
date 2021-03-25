@@ -35,10 +35,10 @@ void Student::getLogin(int numBooks){
 		returnBooks(maxCopies, numBooks, type);
 		break;
 	case 4:
-		//reserveBooks();
+		reserveBooks(maxCopies);
 		break;
 	case 5:
-		//cancelReservation();
+		cancelReservation(maxCopies);
 		break;
 	case 6:
 		smyInfo(type, numBooks);
