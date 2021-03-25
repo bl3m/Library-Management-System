@@ -15,7 +15,5 @@ int main() {
 	User admin;
 	string user, pass;
 	admin.login(user, pass); //call login screen
-	getchar();
-	getchar();
 	return 0;
 }
