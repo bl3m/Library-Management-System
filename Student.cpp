@@ -51,7 +51,3 @@ void Student::getLogin(int numBooks){
 		break;
 	}
 }
- 
-void maxCopies() {
-
-}
