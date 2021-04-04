@@ -1,7 +1,9 @@
 #include <iostream>
 #include <string>
+#include <sstream>
 #include <fstream>
 #include <conio.h>
+#include <vector>
 #include <locale>
 #include "User.h"
 #include "Librarian.h"
@@ -10,61 +12,91 @@
 #include "Teacher.h"
 
 using namespace std;
-User::User(){
+User::User(){}
 
-}
+User::User(string& username_, string& password_):username(username_), password(password_) {}
 
-void User::login(string user, string pass) {
+void User::login() {
 	User admin;
-	Librarian librarian; //access librarian class
-	Reader reader; //access reader class
-	cout << "\n";
-	cout << "**********************************************************" << endl;
-	cout << "-                        LOGIN                           -" << endl;
-	cout << "**********************************************************" << endl;
-	string type, username, password; //initialize username, type, and password
-	int numBooks;
-	ifstream fin("Librarian.txt");
-	if (fin.fail()) {
-		cerr << "File could not be opened" << endl; //error
-		exit(0);
-	}
-	//enter username
-	cout << "Username: ";
-	cin >> user;	
-	pass = getPass("Password: ", true); // Show asterisks
-	int n = 0; //indicator for librarian or reader account
-	//check textfile to verify existing user
-	while (!fin.eof()) {
-		fin >> username >> password;
-		//input username and password from textfile
-		if (user == username && pass == password) {
-			cout << endl;
-			librarian.getLogin(); //librarian home screen
+	while (1) {
+		cout << "\n";
+		cout << "**********************************************************" << endl;
+		cout << "-                        LOGIN                           -" << endl;
+		cout << "**********************************************************" << endl;
+		ifstream librarianIn("Librarian.txt");
+		if (librarianIn.fail()) {
+			cerr << "File could not be opened" << endl; //error
+			exit(0);
 		}
-		else {
-			n += 1;
-		}
-	}
-	fin.close();
-	//if n=1, then check reader text file
-	if (n >= 1) {
-		ifstream readerIn;
-		readerIn.open("Reader.txt");
-		if (readerIn.fail()) {
-			cerr << "Reader.txt could not be opened" << endl;
-		}
-		while (!readerIn.eof()) {
-			readerIn >> type >> username >> password>> numBooks;
-			if (user == username&& pass == password) {
+		string userEntry, user, pass;
+		vector<string> userInfo;
+		int lUser = 0, lPass = 1, rType = 0, rUser = 1, rPass = 2, rNumBooks=3;
+		cout << "Username: ";
+		getline(cin, user);
+		pass = getPass("Password: ", true); // password masking
+		//check textfile to verify existing user
+		bool found = true;
+		while (!librarianIn.eof()) {
+			userInfo.clear();
+			getline(librarianIn, userEntry);
+			if (userEntry == "") {
+				break;
+			}
+			//input username and password from textfile
+			stringstream ss(userEntry);
+			while (ss.good()) {
+				string s;
+				getline(ss, s, ',');
+				userInfo.push_back(s);
+			}
+			if (userInfo[lUser] == user && userInfo[lPass] == pass) {
 				cout << endl;
-				reader.getLogin(type, numBooks);
+				Librarian librarian(user,pass);
+				librarian.getLogin(); //librarian home screen
+			}
+			else {
+				found = false;
 			}
 		}
-		readerIn.close();
+		librarianIn.close();
+		//if not found, then check reader text file
+		if (!found) {
+			ifstream readerIn;
+			readerIn.open("Reader.txt");
+			if (readerIn.fail()) {
+				cerr << "Reader.txt could not be opened" << endl;
+			}
+			while (!readerIn.eof()) {
+				userInfo.clear();
+				getline(readerIn, userEntry);
+				if (userEntry == "") {
+					break;
+				}
+				stringstream ss(userEntry);
+				while (ss.good()) {
+					string s;
+					getline(ss, s, ',');
+					userInfo.push_back(s);
+				}
+				if (user == userInfo[rUser] && pass == userInfo[rPass]) {
+					cout << endl;
+					if (userInfo[rType] == "TEACHER") {
+						Reader reader(user, pass, userInfo[rType], stoi(userInfo[rNumBooks]), 10);
+						reader.getLogin("TEACHER");
+					}
+					else{
+						Reader reader(user, pass, userInfo[rType], stoi(userInfo[rNumBooks]), 10);
+						reader.getLogin("STUDENT");
+					}
+					break;
+				}
+			}
+			readerIn.close();
+		}
+		if (!found) {
+			cout << "\nWrong username/password" << endl;
+		}
 	}
-	cout << "\nWrong username/password" << endl;
-	admin.login(user, pass);
 }
 
 string User::getPass(const char *prompt, bool show_asterisk){
@@ -190,6 +222,7 @@ void User::searchBooks(string type, int numBooks) {
 	Librarian librarian;
 	Student student;
 	Teacher teacher;
+	bool found = false;
 	cout << "\n";
 	cout << "**********************************************************" << endl;
 	cout << "-                       Search Books                     -" << endl;
@@ -199,56 +232,47 @@ void User::searchBooks(string type, int numBooks) {
 		cerr << "could not open input file Book.txt\n";
 		exit(0);
 	}
-	string title, ISBN, author, category, searchTerm;
-	int copies;
-	int n=0;
-	cout << "Enter search term with no spaces" << endl;
-	cin >> searchTerm;
-	//cin.ignore();
-	//getline(cin, searchTerm);
-	//searchTerm.erase(remove(searchTerm.begin(), searchTerm.end(), ' '), searchTerm.end()); //lets user use spaces
-	//transform(searchTerm.begin(), searchTerm.end(), searchTerm.begin(), ::toupper); //lets user user upper/lowercase
-	/*int length = searchTerm.length();
-	for (int i = 0; i < length; i++) {
-		if (searchTerm[i] == ' ') {
-			searchTerm.erase(i, 1);
-		}
-	}*/
+	string searchTerm, bookEntry;
+	int title = 0, author = 1, category = 2, ISBN = 3, copies = 4;
+	vector<string> bookAttr;
+	cout << "Enter a search term: ";
+	cin.ignore();
+	getline(cin, searchTerm);
 	locale loc;
 	for (string::size_type i = 0; i<searchTerm.length(); ++i){
 		searchTerm[i]=toupper(searchTerm[i], loc);
 	}
-	
-
+	//use substrings, search for term within title?
 	while (!fin.eof()) {
-		fin >> title >> author >> category >> ISBN>>copies;
-		if (searchTerm == title | searchTerm == author | searchTerm == category | searchTerm == ISBN) {
-			cout << "TITLE -- " << title << endl;
-			cout << "AUTHOR -- " << author << endl;
-			cout << "CATEGORY -- " << category << endl;
-			cout << "ISBN -- " << ISBN << endl;
-			if (copies > 1) {
-				cout << copies << " copies available" << endl;
+		getline(fin, bookEntry);
+		if (bookEntry == "") {
+			break;
+		}
+		stringstream ss(bookEntry);
+		while (ss.good()) {
+			string sub;
+			getline(ss, sub, ',');
+			bookAttr.push_back(sub);
+		}
+		if (searchTerm == bookAttr[title] || searchTerm == bookAttr[author] || searchTerm == bookAttr[category] || searchTerm == bookAttr[ISBN]) {
+			cout << "TITLE -- " << bookAttr[title] <<endl;
+			cout << "AUTHOR -- " << bookAttr[author] <<endl;
+			cout << "CATEGORY -- " << bookAttr[category] <<endl;
+			cout << "ISBN -- " << bookAttr[ISBN]<<endl;
+			if (stoi(bookAttr[copies]) > 1) {
+				cout << bookAttr[copies] << " copies available" << endl;
 			}
 			else {
-				cout << copies << " copies available" << endl << endl;
+				cout << bookAttr[copies] << " copy available" << endl << endl;
 			}
-			n += 1;
+			found = true;
+			break;
 		}
 	} 
-	if (n == 0) {
+	if (!found) {
 		cout << "Book could not be found" << endl;
 	}
 	fin.close();
-	if (type == "librarian") {
-		librarian.getLogin();
-	}
-	else if (type == "teacher") {
-		teacher.getLogin(numBooks);
-	}
-	else {
-		student.getLogin(numBooks);
-	}
 }
 
 void User::lmyInfo(string type, int numBooks) {
@@ -366,7 +390,11 @@ void User::tmyInfo(string type, int numBooks) {
 	}
 }*/
 
+string User::getUser() {
+	return this->username;
+}
 void User::logout(string user, string pass) {
 	cout << "Goodbye" << endl;
-	login(user, pass);
+	cin.ignore();
+	login();
 }

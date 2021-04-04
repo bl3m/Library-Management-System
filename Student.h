@@ -7,6 +7,7 @@ private:
 	User login;
 public:
 	Student();
+	Student(string user_, string pass_, int numBooks);
 	void getLogin(int numBooks);
 };
 

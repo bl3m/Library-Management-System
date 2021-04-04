@@ -8,20 +8,50 @@
 #include <fstream>
 using namespace std;
 
+Reader::Reader(){}
 
-Reader::Reader(){
+Reader::Reader(string& user_, string& pass_, string& type_, int numBooks_, int maxBooks_) :User{ user_, pass_ },
+type(type_), numBooks(numBooks_), maxBooks(maxBooks_) {}
 
-}
-
-
-void Reader::getLogin(string type, int numBooks) {
-	Student student;
-	Teacher teacher;
-	if (type == "STUDENT") {
-		student.getLogin(numBooks);
-	}
-	if (type == "TEACHER") {
-		teacher.getLogin(numBooks);
+void Reader::getLogin(string type) {
+	cout << "Welcome back, "<<getUser()<< endl;
+	cout << "Please choose:" << endl;
+	cout << "         1 -- Search Books" << endl;
+	cout << "         2 -- Borrow Books" << endl;
+	cout << "         3 -- Return Books" << endl;
+	cout << "         4 -- Reserve Books" << endl;
+	cout << "         5 -- Cancel Reservation" << endl;
+	cout << "         6 -- My Information" << endl;
+	cout << "         7 -- Change Password" << endl;
+	cout << "         0 -- Log Out" << endl;
+	int n;
+	cout << "Selection: " << endl;
+	cin >> n;
+	switch (n) {
+	case 1:
+		searchBooks(type, numBooks);
+		break;
+	case 2:
+		borrowBooks(maxBooks, numBooks, type);
+		break;
+	case 3:
+		returnBooks(maxBooks, numBooks, type);
+		break;
+	case 4:
+		reserveBooks(maxBooks);
+		break;
+	case 5:
+		cancelReservation(maxBooks);
+		break;
+	case 6:
+		smyInfo(type, numBooks);
+		break;
+	case 7:
+		changePassword(type, numBooks);
+		break;
+	case 0:
+		logout(username, password);
+		break;
 	}
 }
 

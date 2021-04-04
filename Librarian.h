@@ -3,10 +3,10 @@
 class Librarian :
 	public User
 {
-private:
-	User login;
+
 public:
 	Librarian();
+	Librarian(string& user_, string& pass_);
 	void getLogin();
 	void searchUser();
 	void addUser();
