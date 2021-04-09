@@ -5,16 +5,15 @@ class User{
 protected:
 	string username;
 	string password;
+	string type;
 public:
 	User();
-	User(string& username_, string& password_);
-	void changePassword(string type, int numBooks);
-	void searchBooks(string type, int numBooks);
+	~User();
+	User(string& username_, string& password_, string& type_);
+	void changePassword(string& type, int& numBooks);
+	void searchBooks(string& type, int& numBooks);
 	void login();
-	void tmyInfo(string type, int numBooks);
-	void lmyInfo(string type, int numBooks);
-	void smyInfo(string type, int numBooks);
-	void logout(string user, string pass);
+	void myInfo(string& type, int& numBooks);
+	void logout(string& user, string& pass);
 	string getPass(const char *prompt, bool show_asterisk=true);
-	string getUser();
 };

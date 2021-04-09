@@ -6,7 +6,8 @@ class Librarian :
 
 public:
 	Librarian();
-	Librarian(string& user_, string& pass_);
+	~Librarian();
+	Librarian(string& user_, string& pass_, string type_);
 	void getLogin();
 	void searchUser();
 	void addUser();

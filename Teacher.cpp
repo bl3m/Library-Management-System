@@ -27,10 +27,10 @@ void Teacher::getLogin(int numBooks){
 		searchBooks(type, numBooks);
 		break;
 	case 2:
-		borrowBooks(maxCopies, numBooks, type);
+		borrowBooks();
 		break;
 	case 3:
-		returnBooks(maxCopies, numBooks, type);
+		returnBooks();
 		break;
 	case 4:
 		//reserveBooks();
@@ -39,7 +39,7 @@ void Teacher::getLogin(int numBooks){
 		//cancelReservation();
 		break;
 	case 6:
-		smyInfo(type, numBooks);
+		myInfo(type, numBooks);
 		break;
 	case 7:
 		changePassword(type, numBooks);

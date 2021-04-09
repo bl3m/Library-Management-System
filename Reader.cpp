@@ -1,143 +1,154 @@
 #include "Reader.h"
-#include "Student.h"
-#include "Teacher.h"
-#include <string>
+#include <sstream>
 #include <queue>
 #include <locale>
 #include <iostream>
 #include <fstream>
-using namespace std;
 
-Reader::Reader(){}
+using std::cin;
+using std::cout;
 
-Reader::Reader(string& user_, string& pass_, string& type_, int numBooks_, int maxBooks_) :User{ user_, pass_ },
-type(type_), numBooks(numBooks_), maxBooks(maxBooks_) {}
+Reader::Reader():maxBooks(5), numBooks(0){}
 
-void Reader::getLogin(string type) {
-	cout << "Welcome back, "<<getUser()<< endl;
-	cout << "Please choose:" << endl;
-	cout << "         1 -- Search Books" << endl;
-	cout << "         2 -- Borrow Books" << endl;
-	cout << "         3 -- Return Books" << endl;
-	cout << "         4 -- Reserve Books" << endl;
-	cout << "         5 -- Cancel Reservation" << endl;
-	cout << "         6 -- My Information" << endl;
-	cout << "         7 -- Change Password" << endl;
-	cout << "         0 -- Log Out" << endl;
-	int n;
-	cout << "Selection: " << endl;
-	cin >> n;
-	switch (n) {
-	case 1:
-		searchBooks(type, numBooks);
-		break;
-	case 2:
-		borrowBooks(maxBooks, numBooks, type);
-		break;
-	case 3:
-		returnBooks(maxBooks, numBooks, type);
-		break;
-	case 4:
-		reserveBooks(maxBooks);
-		break;
-	case 5:
-		cancelReservation(maxBooks);
-		break;
-	case 6:
-		smyInfo(type, numBooks);
-		break;
-	case 7:
-		changePassword(type, numBooks);
-		break;
-	case 0:
-		logout(username, password);
-		break;
+Reader::~Reader(){}
+
+Reader::Reader(string& user_, string& pass_, string& type_, int numBooks_, int maxBooks_) :User{ user_, pass_, type_},
+numBooks(numBooks_), maxBooks(maxBooks_) {}
+
+void Reader::getLogin() {
+	while (1) {
+		cout << "Welcome back, " << this->username << endl;
+		cout << "Please choose:" << endl;
+		cout << "         1 -- Search Books" << endl;
+		cout << "         2 -- Borrow Books" << endl;
+		cout << "         3 -- Return Books" << endl;
+		cout << "         4 -- Reserve Books" << endl;
+		cout << "         5 -- Cancel Reservation" << endl;
+		cout << "         6 -- My Information" << endl;
+		cout << "         7 -- Change Password" << endl;
+		cout << "         0 -- Log Out" << endl;
+		int n;
+		cout << "Selection: ";
+		cin >> n;
+		switch (n) {
+		case 1:
+			searchBooks(this->type, this->numBooks);
+			break;
+		case 2:
+			borrowBooks();
+			break;
+		case 3:
+			returnBooks();
+			break;
+		case 4:
+			reserveBooks();
+			break;
+		case 5:
+			cancelReservation();
+			break;
+		case 6:
+			myInfo(this->type, this->numBooks);
+			break;
+		case 7:
+			changePassword(this->type, this->numBooks);
+			break;
+		case 0:
+			logout(this->username, this->password);
+			break;
+		}
 	}
 }
 
-void Reader::borrowBooks(int maxCopies, int numBooks, string type){
-	Teacher teacher;
-	Student student;
-	string title, author, category, ISBN, borrower, bookTitle, name, type1;
-	int currBooks, ID;
-	cout << "What book do you want to borrow: " << endl;
-	cin >> bookTitle;
-	cout << "Enter your username" << endl;
-	cin >> name;
-	locale loc;
+void Reader::borrowBooks(){
+	//1). Enter book you want to borrow
+	//2). Check if max copies for reader exceeded
+	//3). If not, check if copy available
+	//4). If copy available, borrow book
+		//a).Set due date for book, record borrower name, store in Copy text file
+		//b).Increment numBooks for Reader
+		//c).
+	//5). If copy not available, prompt user to reserve a copy
+
+	string copyEntry, userEntry, bookTitle;
+	vector<string> copyAttr, userAttr;
+	int id = 0, title = 1, author=2, category=3, ISBN=4, borrower=5, type=0, user=1, pass=2, numBooks=3, maxBooks=4 ;
+	cout << "What book do you want to borrow: ";
+	cin.ignore();
+	getline(cin , bookTitle);
 	for (string::size_type i = 0; i<bookTitle.length(); ++i) {
-		bookTitle[i] = toupper(bookTitle[i], loc);
+		bookTitle[i] = toupper(bookTitle[i]);
 	}
-	string user, pass;
-	int numBooks1, maxCopies1;
-	numBooks1 = numBooks;
-	maxCopies1 = maxCopies;
-	ifstream readerIn;
-	readerIn.open("Reader.txt");
-	while (!readerIn.eof()) {
-		readerIn >> type1 >> user >> pass >> numBooks1 >> maxCopies1;
-		if (numBooks1 >= maxCopies1) {
-			cout << "Maximum number of copies has been exceeded " << endl;
-			if (type == "teacher") {
-				teacher.getLogin(numBooks1);
-			}
-			if (type == "student") {
-				student.getLogin(numBooks1);
-			}
-		}
-	}
-	ifstream copyIn;
-	copyIn.open("Copy.txt");
+	int i = numBooks;
+	ifstream copyIn("Copy.txt");
+	ofstream temp("temp.txt"), temp2("temp2.txt");
+	if (copyIn.fail()) {cerr << "Could not open Copy.txt" << endl; return;}
+	if (temp.fail()) {cerr << "Could not open temp.txt"<<endl; return;}
+	if (temp2.fail()) { cerr << "Could not open temp2.txt" << endl; return; }
+	bool borrowed=false;
 	while (!copyIn.eof()) {
-		copyIn >> ID >> title >> author >> category >> ISBN >> borrower;
-		if (bookTitle == title && borrower=="") {
+		copyAttr.clear();
+		getline(copyIn, copyEntry);
+		if (copyEntry == "") {
+			break;
+		}
+		stringstream ss(copyEntry);
+		while (ss.good()) {
+			string s;
+			getline(ss, s, ',');
+			copyAttr.push_back(s);
+		}
+		if (copyAttr[title] == bookTitle && copyAttr[borrower]==""&&!borrowed) {
 			cout << "Book available" << endl;
-			ofstream copyOut;
-			copyOut.open("Copy.txt");
-			copyOut << ID << " " << title << " " << author << " " << category << " " << ISBN << " " << name;
+			temp << copyAttr[id] << "," << copyAttr[title] << "," << copyAttr[author] << "," << copyAttr[category] << "," << copyAttr[ISBN] << "," << this->username << endl;
 			cout << "\nBook has been checked out" << endl;
-			ifstream readerIn;
-			readerIn.open("Reader.txt");
-			numBooks = numBooks + 1;
+			borrowed = true;
+			this->numBooks++;
+			ifstream readerIn("Reader.txt");
+			if (readerIn.fail()) { cerr << "Reader.txt could not be opened"; return; }
 			while (!readerIn.eof()) {
-				readerIn >> type1 >> user >> pass >> currBooks >> maxCopies1;
-				if (name == user) {
-					ofstream readerOut;
-					readerOut.open("Reader.txt");
-					readerOut << type1 << " " << user << " " << pass << " " << numBooks << " " << maxCopies1;
-					readerOut.close();
+				userAttr.clear();
+				getline(readerIn, userEntry);
+				if (userEntry == "") {
+					break;
+				}
+				stringstream ss(userEntry);
+				while (ss.good()) {
+					string s;
+					getline(ss, s, ',');
+					userAttr.push_back(s);
+				}
+				if (this->username == userAttr[user]) {
+					temp2 << userAttr[type] << "," << userAttr[user] << "," << userAttr[pass] << "," << this->numBooks << "," << userAttr[maxBooks] << endl;
 				}
 				else {
-					ofstream readerOut;
-					readerOut.open("Reader.txt");
-					readerOut << type1 << " " << user << " " << pass << " " << currBooks << " " << maxCopies1;
-					readerOut.close();
+					temp2 << userEntry << endl;
 				}
 			}
-			copyOut.close();
 			readerIn.close();
+			temp2.close();
+			remove("Reader.txt");
+			rename("temp2.txt", "Reader.txt");
 		}
-		else {
-			cout << "Book has already been taken out/ wrong book" << endl;
-			ofstream copyOut;
-			copyOut.open("Copy.txt");
-			copyOut << ID << " " << title << " " << author << " " << category << " " << ISBN << " " << borrower;
-			copyOut.close();
+		else if (copyAttr[title]==bookTitle&&copyAttr[borrower]!="") {
+			cout << "Book has already been taken out" << endl;
+		}
+		else{
+			temp << copyEntry << endl;
 		}
 	}
-	cout << "End of process" << endl;
 	copyIn.close();
-	if (type == "teacher") {
-		teacher.getLogin(numBooks1);
-	}
-	if (type == "student") {
-		student.getLogin(numBooks1);
-	}
+	temp.close();
+	remove("Copy.txt");
+	rename("temp.txt", "Copy.txt");
 }
 
-void Reader::returnBooks(int maxCopies, int numBooks, string type) {
-	Teacher teacher;
-	Student student;
+void Reader::returnBooks() {
+	//1). Enter name of book to be returned
+	//2). Remove borrower name from Copy textfile
+	//3). decrement numbooks for Reader
+	//4). notify user on login if book overdue/reservation available??? 
+	//Teacher teacher;
+	//Student student;
 	string title, author, category, ISBN, borrower, bookTitle, name, type1;
 	int currBooks, ID;
 	cout << "What book do you want to return: " << endl;
@@ -150,8 +161,6 @@ void Reader::returnBooks(int maxCopies, int numBooks, string type) {
 	}
 	string user, pass;
 	int numBooks1, maxCopies1;
-	numBooks1 = numBooks;
-	maxCopies1 = maxCopies;
 	ifstream copyIn;
 	copyIn.open("Copy.txt");
 	cout << "Reading data file" << endl;
@@ -194,17 +203,19 @@ void Reader::returnBooks(int maxCopies, int numBooks, string type) {
 	cout << "\nEnd of process" << endl;
 	copyIn.close();
 	if (type == "teacher") {
-		teacher.getLogin(numBooks1);
+		//teacher.getLogin(numBooks1);
 	}
 	if (type == "student") {
-		student.getLogin(numBooks1);
+		//student.getLogin(numBooks1);
 	}
 }
 
-void Reader::reserveBooks(int maxCopies) {
-
+void Reader::reserveBooks() {
+	//1). ask for book to reserve
+	//2). if copy available then prompt reader to borrow(extra function parameter to see if tried to borrow first or direct reserve?)
+	//3).if not, add username to copy for reservation list
 }
 
-void Reader::cancelReservation(int maxCopies) {
-
+void Reader::cancelReservation() {
+	//1).Remove name from copy reservation list
 }

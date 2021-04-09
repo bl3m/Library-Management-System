@@ -5,17 +5,20 @@
 #include <vector>
 #include "Librarian.h"
 #include <locale>
-using namespace std;
+using std::cout;
+using std::cin;
 
 Librarian::Librarian(){}
 
-Librarian::Librarian(string& user_, string& pass_) :User{ user_, pass_ } {}
+Librarian::~Librarian(){}
+
+Librarian::Librarian(string& user_, string& pass_, string type_) :User{ user_, pass_, type_} {}
 
 void Librarian::getLogin() {
-	string user, pass, type="librarian";
+	type="LIBRARIAN";
 	int numBooks = 0;
 	while (1) {
-		cout << "Welcome back, "<<getUser() << endl;
+		cout << "Welcome back, "<<this->username << endl;
 		cout << "Please choose:" << endl;
 		cout << "         1 -- Search Books" << endl;
 		cout << "         2 -- Add Books" << endl;
@@ -49,13 +52,14 @@ void Librarian::getLogin() {
 			deleteUser();
 			break;
 		case 7:
-			lmyInfo(type, numBooks);
+			myInfo(type, numBooks);
 			break;
 		case 8:
 			changePassword(type, numBooks);
 			break;
 		case 0:
-			logout(user, pass);
+			cin.ignore();
+			return;
 			break;
 		}
 	}
@@ -70,7 +74,7 @@ void Librarian::searchUser() {
 	ifstream librarianIn("Librarian.txt");
 	if (readerIn.fail()) {
 		cerr << "Reader.txt could not be opened" << endl;
-		exit(0);
+		return;
 	}
 	string userEntry, searchTerm;
 	vector<string> reader;
@@ -78,7 +82,7 @@ void Librarian::searchUser() {
 	cout << "Enter username: ";
 	cin.ignore();
 	getline(cin, searchTerm);
-	bool found;
+	bool found=false;
 	while (!readerIn.eof()) {
 		reader.clear();
 		getline(readerIn, userEntry);
@@ -102,7 +106,7 @@ void Librarian::searchUser() {
 		librarianIn.open("Librarian.txt");
 		if (librarianIn.fail()) {
 			cerr << "Librarian.txt could not be opened" << endl;
-			exit(0);
+			return;
 		}
 		while (!librarianIn.eof()) {
 			reader.clear();
@@ -193,7 +197,7 @@ void Librarian::deleteUser() {
 	
 	if (readerIn.fail()) {
 		cerr << "File could not be opened" << endl;
-		exit(0);
+		return;
 	}
 	string userEntry, userDel;
 	int type = 0, user = 1, pass = 2, numBooks=3, maxBooks=4;
@@ -236,11 +240,11 @@ void Librarian::addBooks() {
 	
 	if (bookIn.fail()) {
 		cerr << "File could not be opened" << endl;
-		exit(1);
+		return;
 	}
 	if (copyOut.fail()) {
 		cerr << "Copy.txt could not be opened" << endl;
-		exit(1);
+		return;
 	}
 	string newISBN, newTitle, newAuthor, newCategory, bookEntry;
 	vector<string> bookAttr;
@@ -288,7 +292,7 @@ void Librarian::addBooks() {
 			exists = true;
 			temp << bookAttr[title] << "," << bookAttr[author] << "," << bookAttr[category] << "," << bookAttr[ISBN] << "," << newCopy+stoi(bookAttr[copies]) << "\n";
 			for (int i = stoi(bookAttr[copies]) + 1; i <= newCopy + stoi(bookAttr[copies]); i++){
-				copyOut << i << "," << bookAttr[title] << "," << bookAttr[author] << "," << bookAttr[category] << "," << bookAttr[ISBN] << "\n";
+				copyOut << i << "," << bookAttr[title] << "," << bookAttr[author] << "," << bookAttr[category] << "," << bookAttr[ISBN] << ",\n";
 			}
 			copyOut.close();
 		}
@@ -305,7 +309,7 @@ void Librarian::addBooks() {
 		bookOut.open("Book.txt", ios_base::app);
 		bookOut << newTitle << "," << newAuthor << "," << newCategory << "," << newISBN << "," << newCopy << "\n";
 		for (i = 0; i < newCopy; i++){
-			copyOut << i + 1 << "," << newTitle << "," << newAuthor << "," << newCategory << "," << newISBN << "\n";
+			copyOut << i + 1 << "," << newTitle << "," << newAuthor << "," << newCategory << "," << newISBN << ",\n";
 		}
 		remove("temp.txt");
 		bookOut.close();
@@ -319,7 +323,6 @@ void Librarian::addBooks() {
 }
 
 void Librarian::deleteBooks() {
-	Librarian librarian;
 	cout << "\n";
 	cout << "**********************************************************" << endl;
 	cout << "-                    Delete Books                        -" << endl;
@@ -330,19 +333,19 @@ void Librarian::deleteBooks() {
 
 	if (bookIn.fail()) {
 		cerr << "Book.txt not be open" << endl;
-		exit(1);
+		return;
 	}
 	if (bookTemp.fail()) {
 		cerr << "temp.txt could not be opened" << endl;
-		exit(1);
+		return;
 	}
 	if (copyTemp.fail()) {
 		cerr << "temp2.txt could not be opened" << endl;
-		exit(1);
+		return;
 	}
 	if (copyIn.fail()) {
 		cerr << "Copy.txt could not be opened" << endl;
-		exit(1);
+		return;
 	}
 
 	string term, entry, copyEntry;
