@@ -149,64 +149,60 @@ void Reader::returnBooks() {
 	//4). notify user on login if book overdue/reservation available??? 
 	//Teacher teacher;
 	//Student student;
-	string title, author, category, ISBN, borrower, bookTitle, name, type1;
-	int currBooks, ID;
+	string copyEntry, readerEntry, bookTitle;
+	vector<string> copyAttr, readerAttr;
+	int id = 0, title = 1, author = 2, category = 3, ISBN = 4, borrower = 5, type = 0, user = 1, pass = 2, numBooks = 3, maxBooks = 4;
 	cout << "What book do you want to return: " << endl;
 	cin >> bookTitle;
-	cout << "Enter your username" << endl;
-	cin >> name;
-	locale loc;
 	for (string::size_type i = 0; i<bookTitle.length(); ++i) {
-		bookTitle[i] = toupper(bookTitle[i], loc);
+		bookTitle[i] = toupper(bookTitle[i]);
 	}
-	string user, pass;
-	int numBooks1, maxCopies1;
-	ifstream copyIn;
-	copyIn.open("Copy.txt");
-	cout << "Reading data file" << endl;
+	ifstream copyIn("Copy.txt");
+	ofstream temp("temp.txt"), temp2("temp2.txt");
+	if (copyIn.fail()) { cerr << "Copy.txt could not be opened" << endl; return; }
+	if (temp.fail()) { cerr << "temp.txt could not be opened" << endl; return; }
 	while (!copyIn.eof()) {
-		copyIn >> ID >> title >> author >> category >> ISBN >> borrower;
-		if (bookTitle == title && borrower == name) {
+		copyAttr.clear();
+		getline(copyIn, copyEntry);
+		if (copyEntry == "") {
+			break;
+		}
+		std::stringstream ss(copyEntry);
+		while (ss.good()) {
+			string s;
+			getline(ss, s, ',');
+			copyAttr.push_back(s);
+		}
+		if (copyAttr[title] == bookTitle && copyAttr[borrower] == this->username) {
 			cout << "Book available to be returned" << endl;
-			ofstream copyOut;
-			copyOut.open("Copy.txt");
-			copyOut << ID << " " << title << " " << author << " " << category << " " << ISBN ;
+			temp << copyAttr[id] << "," << copyAttr[title] << "," << copyAttr[author] << "," << copyAttr[category] << "," <<copyAttr[ISBN]<<","<<endl ;
 			cout << "\nBook returned" << endl;
+			this->numBooks--;
 			ifstream readerIn;
 			readerIn.open("Reader.txt");
 			numBooks = numBooks - 1;
 			while (!readerIn.eof()) {
-				readerIn >> type1 >> user >> pass >> currBooks >> maxCopies1;
-				if (name == user) {
-					ofstream readerOut;
-					readerOut.open("Reader.txt");
-					readerOut << type1 << " " << user << " " << pass << " " << numBooks << " " << maxCopies1;
-					readerOut.close();
+				readerAttr.clear();
+				getline(readerIn, readerEntry);
+				if (readerEntry == "") { break; }
+				stringstream rss(readerEntry);
+				while (rss.good()) {
+					string s;
+					getline(rss, s, ',');
+					readerAttr.push_back(s);
+				}
+				if (readerAttr[user] == this->username) {
+					temp2 << this->type << "," << this->username << "," << this->password << "," << this->numBooks << "," << this->maxBooks<<endl;
 				}
 				else {
-					ofstream readerOut;
-					readerOut.open("Reader.txt");
-					readerOut << type1 << " " << user << " " << pass << " " << currBooks << " " << maxCopies1;
-					readerOut.close();
+					temp2 << readerEntry << endl;
 				}
 			}
-			copyOut.close();
 			readerIn.close();
 		}
 		else {
-			ofstream copyOut;
-			copyOut.open("Copy.txt");
-			copyOut << ID << " " << title << " " << author << " " << category << " " << ISBN << " " << borrower;
-			copyOut.close();
+			temp << copyEntry << endl;
 		}
-	}
-	cout << "\nEnd of process" << endl;
-	copyIn.close();
-	if (type == "teacher") {
-		//teacher.getLogin(numBooks1);
-	}
-	if (type == "student") {
-		//student.getLogin(numBooks1);
 	}
 }
 

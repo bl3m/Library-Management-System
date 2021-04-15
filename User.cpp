@@ -1,5 +1,4 @@
 #include <iostream>
-#include <string>
 #include <sstream>
 #include <fstream>
 #include <conio.h>
@@ -8,13 +7,14 @@
 #include "User.h"
 #include "Librarian.h"
 #include "Reader.h"
-#include "Student.h"
-#include "Teacher.h"
 
-using namespace std;
+using std::cin;
+using std::cout;
 User::User(){}
 
-User::User(string& username_, string& password_):username(username_), password(password_) {}
+User::~User(){}
+
+User::User(string& username_, string& password_, string& type_):username(username_), password(password_), type(type_){}
 
 void User::login() {
 	User admin;
@@ -26,7 +26,7 @@ void User::login() {
 		ifstream librarianIn("Librarian.txt");
 		if (librarianIn.fail()) {
 			cerr << "File could not be opened" << endl; //error
-			exit(0);
+			return;
 		}
 		string userEntry, user, pass;
 		vector<string> userInfo;
@@ -35,7 +35,9 @@ void User::login() {
 		getline(cin, user);
 		pass = getPass("Password: ", true); // password masking
 		//check textfile to verify existing user
-		bool found = true;
+		bool found = false;
+		string foundType, foundUser, foundPass;
+		int foundNumBooks;
 		while (!librarianIn.eof()) {
 			userInfo.clear();
 			getline(librarianIn, userEntry);
@@ -50,15 +52,17 @@ void User::login() {
 				userInfo.push_back(s);
 			}
 			if (userInfo[lUser] == user && userInfo[lPass] == pass) {
-				cout << endl;
-				Librarian librarian(user,pass);
-				librarian.getLogin(); //librarian home screen
-			}
-			else {
-				found = false;
+				foundUser = user;
+				foundPass = pass;
+				foundType = "LIBRARIAN";
+				found = true;
+				break;
+				//Librarian librarian(user,pass, "LIBRARIAN");
+				//librarian.getLogin(); //librarian home screen
 			}
 		}
 		librarianIn.close();
+		
 		//if not found, then check reader text file
 		if (!found) {
 			ifstream readerIn;
@@ -79,21 +83,37 @@ void User::login() {
 					userInfo.push_back(s);
 				}
 				if (user == userInfo[rUser] && pass == userInfo[rPass]) {
-					cout << endl;
+					foundUser = user;
+					foundPass = pass;
+					foundNumBooks = stoi(userInfo[rNumBooks]);
 					if (userInfo[rType] == "TEACHER") {
-						Reader reader(user, pass, userInfo[rType], stoi(userInfo[rNumBooks]), 10);
-						reader.getLogin("TEACHER");
+						foundType = "TEACHER";
 					}
 					else{
-						Reader reader(user, pass, userInfo[rType], stoi(userInfo[rNumBooks]), 10);
-						reader.getLogin("STUDENT");
+						foundType = "STUDENT";
 					}
+					found = true;
 					break;
 				}
 			}
 			readerIn.close();
 		}
-		if (!found) {
+		if (found) {
+			cout << endl;
+			if (foundType == "LIBRARIAN") {
+				Librarian librarian(foundUser, foundPass, "LIBRARIAN");
+				librarian.getLogin(); //librarian home screen
+			}
+			else if (foundType == "TEACHER") {
+				Reader reader(foundUser, foundPass, foundType, foundNumBooks, 10);
+				reader.getLogin();
+			}
+			else if (foundType == "STUDENT") {
+				Reader reader(foundUser, foundPass, foundType, foundNumBooks, 5);
+				reader.getLogin();
+			}
+		}
+		else{
 			cout << "\nWrong username/password" << endl;
 		}
 	}
@@ -134,94 +154,104 @@ string User::getPass(const char *prompt, bool show_asterisk){
 	return passwordMask;
 }
 
-void User::changePassword(string type, int numBooks){
-	Student student;
-	Librarian librarian;
-	Teacher teacher;
+void User::changePassword(string& type, int& numBooks){
 	cout << "\n";
 	cout << "**********************************************************" << endl;
 	cout << "-                     Change Password                    -" << endl;
 	cout << "**********************************************************" << endl;
-	ifstream fin("Librarian.txt");
 	
-	if (fin.fail()) {
+	ifstream librarianIn("Librarian.txt");
+	ifstream readerIn("Reader.txt");
+	ofstream temp("temp.txt", ios_base::app);
+	if (librarianIn.fail()) {
 		cerr << "Librarian.txt could not be opened" << endl;
-		exit(0);
+		return;
 	}
-	string user, pass, newPass,  enteredPass, type1;
-	int n = 0;
-	cout << "Enter your current password: ";
-	cin >> enteredPass;
-	/*locale loc;
-	for (string::size_type i = 0; i<enteredPass.length(); ++i) {
-		enteredPass[i] = toupper(enteredPass[i], loc);
-	}*/
-	cout << enteredPass << endl;
-	while (!fin.eof()) {
-		fin >> user >> pass;
-		if (enteredPass == pass) {
-			cout << "Enter new password: ";
-			cin >> newPass; //enter new password
-			pass = newPass; //set old password to new
-			n += 1; 
-			ofstream fout("Librarian.txt");
-			fout << user <<" "<< newPass;
-			fout.close();
-			cout << "Password Changed" << endl << endl;
+	if (readerIn.fail()) {
+		cerr << "Reader.txt could not be opened" << endl;
+		return;
+	}
+	if (temp.fail()) {
+		cerr << "temp.txt could not be opened" << endl;
+		return;
+	}
+	string userEntry, newPass,  enteredPass, type1;
+	int lUser = 0, lPass = 1, rUser=1, rPass=2;
+	vector<string> userAttr;
+	cout << "Verify your current password: ";
+	cin.ignore();
+	enteredPass= getPass("", true);
+	bool found = false;
+		
+	while (!librarianIn.eof()) {
+		userAttr.clear();
+		getline(librarianIn, userEntry);
+		if (userEntry == "") {
+			break;
+		}
+		stringstream ss(userEntry);
+		while (ss.good()) {
+			string s;
+			getline(ss, s, ',');
+			userAttr.push_back(s);
+		}
+		if (this->username==userAttr[lUser]&&enteredPass == userAttr[lPass]) {
+			found = true;
+			cout << "\nEnter new password: ";
+			newPass= getPass("", true); //enter new password
+			temp << userAttr[lUser] << "," << newPass << endl;
+			cout << "\nPassword Changed" << endl << endl;
 		}
 		else {
-			ofstream fout("Librarian.txt");
-			fout << user<< " " << pass;
-			fout.close();
+			temp << userEntry << endl;
 		}
 	}
-	fin.close();
-	if (n == 0) {
-		ifstream readerIn;
-		readerIn.open("Reader.txt");
-		if (readerIn.fail()) {
-			cerr << "Reader.txt could not be opened" << endl;
-			exit(0);
+	librarianIn.close();
+	temp.close();
+	remove("Librarian.txt");
+	rename("temp.txt", "Librarian.txt");
+	//rename Librarian.txt
+	if (!found) {
+		ofstream temp2("temp2.txt", ios_base::app);
+		if (temp2.fail()) {
+			cerr << "temp2.txt could not be opened" << endl;
+			return;
 		}
-		while (!readerIn.eof()){
-			readerIn >> type1 >> user >> pass;
-			if (user == enteredPass) {
-				cout << "Enter new 0password: ";
-				cin >> newPass;
-				locale loc;
-				ofstream readerOut;
-				readerOut.open("Reader.txt");
-				readerOut << " " << type1 << " " << user << " " << newPass;
-				readerOut << " " << endl;
-				cout << "Password Changed" << endl;
-				readerOut.close();
+		while (!readerIn.eof()) {
+			userAttr.clear();
+			getline(readerIn, userEntry);
+			if (userEntry == "") {
+				break;
+			}
+			stringstream ss(userEntry);
+			while (ss.good()) {
+				string s;
+				getline(ss, s, ',');
+				userAttr.push_back(s);
+			}
+			if (this->username == userAttr[rUser] && enteredPass == userAttr[rPass]) {
+				found = true;
+				cout << "\nEnter new password: ";
+				newPass = getPass("", true); //enter new password
+				temp2 << userAttr[0] << "," << userAttr[rUser] << "," << newPass <<","<< userAttr[3] << "," << userAttr[4] << endl;
+				cout << "\nPassword Changed" << endl << endl;
 			}
 			else {
-				ofstream fout("Reader.txt");
-				fout << type1 <<"  "<<user <<" "<< pass;
-				fout << " " << endl;
-				fout.close();
+				temp2 << userEntry << endl;
 			}
 		}
+		//rename Reader.txt
+		readerIn.close();
+		temp2.close();
+		remove("Reader.txt");
+		rename("temp2.txt", "Reader.txt");
 	}
-	fin.close();
-	if (type == "student") {
-		student.getLogin(numBooks); //go to student login screen
-	}
-	else if(type=="librarian"){
-		cout << n << endl;
-		cout << user << endl;
-		librarian.getLogin(); //go to librarian login screen
-	}
-	else {
-		teacher.getLogin(numBooks); //go to teacher login screen
+	if (!found) {
+		cout << "Password could not be verified" << endl;
 	}
 }
 
-void User::searchBooks(string type, int numBooks) {
-	Librarian librarian;
-	Student student;
-	Teacher teacher;
+void User::searchBooks(string& type, int& numBooks) {
 	bool found = false;
 	cout << "\n";
 	cout << "**********************************************************" << endl;
@@ -230,7 +260,7 @@ void User::searchBooks(string type, int numBooks) {
 	ifstream fin("Book.txt");
 	if (fin.fail()) {
 		cerr << "could not open input file Book.txt\n";
-		exit(0);
+		return;
 	}
 	string searchTerm, bookEntry;
 	int title = 0, author = 1, category = 2, ISBN = 3, copies = 4;
@@ -275,125 +305,22 @@ void User::searchBooks(string type, int numBooks) {
 	fin.close();
 }
 
-void User::lmyInfo(string type, int numBooks) {
+void User::myInfo(string& type, int& numBooks) {
 	Librarian librarian;
 	cout << "\n";
 	cout << "**********************************************************" << endl;
 	cout << "-                    Your Information                    -" << endl;
 	cout << "**********************************************************" << endl;
-	string type1, user, pass, enterUser;
-	cout << "Enter your username: ";
-	cin >> enterUser;
-	ifstream fin("Librarian.txt");
-	while (!fin.eof()) {
-		fin >> user >> pass;
-		if (user == enterUser) {
-			cout << "Your username is " << user << endl;
-			cout << "Your password is " << pass << endl;
-		}
+	if (type == "LIBRARIAN") {
+		cout << "Your username is " << this->username << endl;
 	}
-	fin.close();
-	
-	librarian.getLogin();
+	else {
+		cout << "Your username is " << this->username << endl;
+		cout << "You have " << numBooks << " book borrowed" << endl;
+	}
 }
 
-void User::smyInfo(string type, int numBooks) {
-	Student student;
-	cout << "\n";
-	cout << "**********************************************************" << endl;
-	cout << "-                    Your Information                    -" << endl;
-	cout << "**********************************************************" << endl;
-	string type1, user, pass, enterUser;
-	int numberofCopies;
-	cout << "Enter your username: ";
-	cin >> enterUser;
-	ifstream fin("Reader.txt");
-	while (!fin.eof()) {
-		fin >> type1 >> user >> pass >> numberofCopies;
-		if (enterUser == user) {
-			cout << "Your username is " << user << endl;
-			cout << "Your password is " << pass << endl;
-			cout << "You have " << numberofCopies << " books borrowed" << endl;
-		}
-	}
-	fin.close();
-
-	student.getLogin(numBooks);
-	
-}
-
-void User::tmyInfo(string type, int numBooks) {
-	Teacher teacher;
-	cout << "\n";
-	cout << "**********************************************************" << endl;
-	cout << "-                    Your Information                    -" << endl;
-	cout << "**********************************************************" << endl;
-	string type1, user, pass, enterUser;
-	int numberofCopies;
-	cout << "Enter your username: ";
-	cin >> enterUser;
-	ifstream fin("Reader.txt");
-	while (!fin.eof()) {
-		fin >> type1 >> user >> pass >> numberofCopies;
-		if (enterUser == user) {
-			cout << "Your username is " << user << endl;
-			cout << "Your password is " << pass << endl;
-			cout << "You have " << numberofCopies << " books borrowed" << endl;
-		}
-	}
-	fin.close();
-
-	teacher.getLogin(numBooks);
-}
-/*void User::myInfo(string type, int numBooks) {
-	Librarian librarian;
-	cout << "\n";
-	cout << "**********************************************************" << endl;
-	cout << "-                    Your Information                    -" << endl;
-	cout << "**********************************************************" << endl;
-	Student student;
-	Teacher teacher;
-	string type1, user, pass, enterUser;
-	int numberofCopies, n=0;
-	cout << "Enter your username: ";
-	cin >> enterUser;
-	ifstream fin("Librarian.txt");
-	while (!fin.eof()){
-		fin >> user >> pass;
-		if (user == enterUser) {
-			cout << "Your username is " << user<<endl;
-			cout << "Your password is " << pass << endl;
-			n += 1;
-		}
-	}
-	fin.close();
-	if (n = 0) {
-		ifstream fin("Reader.txt");
-		while (!fin.eof()) {
-			fin >> type1 >> user >> pass >> numberofCopies;
-			if (enterUser == user) {
-				cout << "Your username is " << user << endl;
-				cout << "Your password is " << pass << endl;
-				cout << "You have " << numberofCopies << " books borrowed" << endl;
-			}
-		}
-		fin.close();
-	}
-	if (type == "librarian") {
-		librarian.getLogin();
-	}
-	if (type == "teacher") {
-		teacher.getLogin(numBooks);
-	}
-	if (type == "student") {
-		student.getLogin(numBooks);
-	}
-}*/
-
-string User::getUser() {
-	return this->username;
-}
-void User::logout(string user, string pass) {
+void User::logout(string& user, string& pass) {
 	cout << "Goodbye" << endl;
 	cin.ignore();
 	login();
