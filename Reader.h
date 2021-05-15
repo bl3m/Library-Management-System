@@ -14,7 +14,7 @@ public:
 	void getLogin();
 	void borrowBooks();
 	void returnBooks();
-	void reserveBooks();
+	void reserveBooks(string& bookTitle);
 	void cancelReservation();
 	
 };

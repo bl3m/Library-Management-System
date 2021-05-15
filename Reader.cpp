@@ -22,10 +22,9 @@ void Reader::getLogin() {
 		cout << "         1 -- Search Books" << endl;
 		cout << "         2 -- Borrow Books" << endl;
 		cout << "         3 -- Return Books" << endl;
-		cout << "         4 -- Reserve Books" << endl;
-		cout << "         5 -- Cancel Reservation" << endl;
-		cout << "         6 -- My Information" << endl;
-		cout << "         7 -- Change Password" << endl;
+		cout << "         4 -- Cancel Reservation" << endl;
+		cout << "         5 -- My Information" << endl;
+		cout << "         6 -- Change Password" << endl;
 		cout << "         0 -- Log Out" << endl;
 		int n;
 		cout << "Selection: ";
@@ -41,15 +40,12 @@ void Reader::getLogin() {
 			returnBooks();
 			break;
 		case 4:
-			reserveBooks();
-			break;
-		case 5:
 			cancelReservation();
 			break;
-		case 6:
+		case 5:
 			myInfo(this->type, this->numBooks);
 			break;
-		case 7:
+		case 6:
 			changePassword(this->type, this->numBooks);
 			break;
 		case 0:
@@ -84,7 +80,7 @@ void Reader::borrowBooks(){
 	if (copyIn.fail()) {cerr << "Could not open Copy.txt" << endl; return;}
 	if (temp.fail()) {cerr << "Could not open temp.txt"<<endl; return;}
 	if (temp2.fail()) { cerr << "Could not open temp2.txt" << endl; return; }
-	bool borrowed=false;
+	bool borrowed=false; //so user doesn't borrow multiple books
 	while (!copyIn.eof()) {
 		copyAttr.clear();
 		getline(copyIn, copyEntry);
@@ -129,9 +125,6 @@ void Reader::borrowBooks(){
 			remove("Reader.txt");
 			rename("temp2.txt", "Reader.txt");
 		}
-		else if (copyAttr[title]==bookTitle&&copyAttr[borrower]!="") {
-			cout << "Book has already been taken out" << endl;
-		}
 		else{
 			temp << copyEntry << endl;
 		}
@@ -140,6 +133,16 @@ void Reader::borrowBooks(){
 	temp.close();
 	remove("Copy.txt");
 	rename("temp.txt", "Copy.txt");
+
+	if (!borrowed) {
+		cout << "No copies available. Would you like to reserve?" << endl;
+		cout << "Y--Yes\nN--No" << endl;
+		string sel;
+		getline(cin, sel);
+		if (sel == "Y") {
+			reserveBooks(bookTitle);
+		}
+	}
 }
 
 void Reader::returnBooks() {
@@ -147,13 +150,13 @@ void Reader::returnBooks() {
 	//2). Remove borrower name from Copy textfile
 	//3). decrement numbooks for Reader
 	//4). notify user on login if book overdue/reservation available??? 
-	//Teacher teacher;
-	//Student student;
+
 	string copyEntry, readerEntry, bookTitle;
 	vector<string> copyAttr, readerAttr;
-	int id = 0, title = 1, author = 2, category = 3, ISBN = 4, borrower = 5, type = 0, user = 1, pass = 2, numBooks = 3, maxBooks = 4;
-	cout << "What book do you want to return: " << endl;
-	cin >> bookTitle;
+	int id = 0, title = 1, author = 2, category = 3, ISBN = 4, borrower = 5, reserver=6, type = 0, user = 1, pass = 2, numBooks = 3, maxBooks = 4;
+	cout << "What book do you want to return: ";
+	cin.ignore();
+	getline(cin, bookTitle);
 	for (string::size_type i = 0; i<bookTitle.length(); ++i) {
 		bookTitle[i] = toupper(bookTitle[i]);
 	}
@@ -178,9 +181,8 @@ void Reader::returnBooks() {
 			temp << copyAttr[id] << "," << copyAttr[title] << "," << copyAttr[author] << "," << copyAttr[category] << "," <<copyAttr[ISBN]<<","<<endl ;
 			cout << "\nBook returned" << endl;
 			this->numBooks--;
-			ifstream readerIn;
-			readerIn.open("Reader.txt");
-			numBooks = numBooks - 1;
+			ifstream readerIn("Reader.txt");
+			numBooks--;
 			while (!readerIn.eof()) {
 				readerAttr.clear();
 				getline(readerIn, readerEntry);
@@ -199,19 +201,103 @@ void Reader::returnBooks() {
 				}
 			}
 			readerIn.close();
+			temp2.close();
+			remove("Reader.txt");
+			rename("temp2.txt", "Reader.txt");
 		}
 		else {
 			temp << copyEntry << endl;
 		}
 	}
+	temp.close();
+	copyIn.close();
+	remove("Copy.txt");
+	rename("temp.txt", "Copy.txt");
 }
 
-void Reader::reserveBooks() {
+void Reader::reserveBooks(string& bookTitle) {
 	//1). ask for book to reserve
 	//2). if copy available then prompt reader to borrow(extra function parameter to see if tried to borrow first or direct reserve?)
 	//3).if not, add username to copy for reservation list
+	string copyEntry;
+	vector<string> copyAttr;
+	int id = 0, title = 1, author = 2, category = 3, ISBN = 4, borrower = 5, reserver = 6;
+	for (string::size_type i = 0; i < bookTitle.length(); ++i) {
+		bookTitle[i] = toupper(bookTitle[i]);
+	}
+	ifstream copyIn("Copy.txt");
+	ofstream temp("temp.txt");
+	if (copyIn.fail()) { cerr << "Copy.txt could not be opened" << endl; return; }
+	if (temp.fail()) { cerr << "temp.txt could not be opened" << endl; return; }
+	bool reserved = false;
+	while (!copyIn.eof()) {
+		copyAttr.clear();
+		getline(copyIn, copyEntry);
+		if (copyEntry == "") {
+			break;
+		}
+		std::stringstream ss(copyEntry);
+		while (ss.good()) {
+			string s;
+			getline(ss, s, ',');
+			copyAttr.push_back(s);
+		}
+		if (copyAttr[title] == bookTitle && copyAttr[borrower] != "" &&copyAttr[reserver]==""&& !reserved) {
+			cout << "Book available to be reserved" << endl;
+			temp << copyEntry<<this->username<< endl;
+			reserved = true;
+		}
+		else {
+			temp << copyEntry << endl;
+		}
+	}
+	copyIn.close();
+	remove("Copy.txt");
+	rename("temp.txt", "Copy.txt");
+	if (!reserved) {
+		cout << "Book is already reserved." << endl;
+	}
+	else {
+		cout << "Book reserved" << endl;
+	}
 }
 
 void Reader::cancelReservation() {
 	//1).Remove name from copy reservation list
+	string copyEntry, bookTitle;
+	vector<string> copyAttr;
+	int id = 0, title = 1, author = 2, category = 3, ISBN = 4, borrower = 5, reserver = 6, type = 0, user = 1, pass = 2, numBooks = 3, maxBooks = 4;
+	cout << "What book do you want to cancel your reservation for?: ";
+	cin.ignore();
+	getline(cin, bookTitle);
+	for (string::size_type i = 0; i < bookTitle.length(); ++i) {
+		bookTitle[i] = toupper(bookTitle[i]);
+	}
+	ifstream copyIn("Copy.txt");
+	ofstream temp("temp.txt");
+	if (copyIn.fail()) { cerr << "Copy.txt could not be opened" << endl; return; }
+	if (temp.fail()) { cerr << "temp.txt could not be opened" << endl; return; }
+	while (!copyIn.eof()) {
+		copyAttr.clear();
+		getline(copyIn, copyEntry);
+		if (copyEntry == "") {
+			break;
+		}
+		std::stringstream ss(copyEntry);
+		while (ss.good()) {
+			string s;
+			getline(ss, s, ',');
+			copyAttr.push_back(s);
+		}
+		if (copyAttr[title] == bookTitle && copyAttr[reserver] == this->username) {
+			temp << copyAttr[id] << "," << copyAttr[title] << "," << copyAttr[author] << "," << copyAttr[category] << "," << copyAttr[ISBN] << "," <<copyAttr[borrower]<<"," <<endl;
+			cout << "Reservation cancelled" << endl;
+		}
+		else {
+			temp << copyEntry << endl;
+		}
+		temp.close();
+		remove("Copy.txt");
+		rename("temp.txt", "Copy.txt");
+	}
 }
